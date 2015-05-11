@@ -6,8 +6,6 @@
 
 (in-package #:org.shirakumo.abcd)
 
-(defvar *default-flags* '(:warnings :all))
-
 (define-asdf/interface-class c-system (asdf:system flag-component)
   ((default-header-class :initarg :default-header-class :initform 'c-header :accessor default-header-class)
    (compiler :initarg :compiler :initform T :accessor c-system-compiler)
@@ -44,7 +42,7 @@
 (defvar *standard-asdf-class-for-type* #'asdf::class-for-type)
 (defvar *default-header-class* 'c-header)
 
-(defun asdf::class-for-type (parent type)
+(defun asdf/parse-defsystem:class-for-type (parent type)
   (or (and (eq type :header)
            (asdf::coerce-class
             (or (loop for p = parent then (asdf:component-parent p)

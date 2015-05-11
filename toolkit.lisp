@@ -51,6 +51,9 @@
                   "i"))
      :defaults pathname)))
 
+(defun assembled-file (pathname)
+  (make-pathname :type "o" :defaults pathname))
+
 (defvar *nothing* (make-symbol "NOTHING"))
 (defun merge-flags (flags &optional defaults)
   ;; Merge inexistent
@@ -63,9 +66,6 @@
   ;;       when (consp value)
   ;;       do ())
   flags)
-
-(defun assembled-file (pathname)
-  (make-pathname :type "o" :defaults pathname))
 
 (defun component-path (component)
   (let ((comps ()))
