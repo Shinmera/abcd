@@ -18,16 +18,18 @@
    :compiler NIL
    :compiler-function #'c-compile))
 
+(defmethod asdf/operation:operation-original-initargs ((op c-compiler-op))
+  `(:flags ,(operation-direct-flags op)
+    :compiler ,(operation-compiler op)))
+
 (defmethod execute ((op c-compiler-op) inputs outputs)
-  (let ((flags (merge-flags (operation-direct-flags op)
-                            (operation-effective-flags op))))
-    (loop for input in inputs
-          for output in outputs
-          do (apply (operation-compiler-function op)
-                    (or (operation-compiler op) T)
-                    (minimal-shell-namestring input)
-                    (minimal-shell-namestring output)
-                    flags))))
+  (loop for input in inputs
+        for output in outputs
+        do (apply (operation-compiler-function op)
+                  (or (operation-compiler op) T)
+                  (minimal-shell-namestring input)
+                  (minimal-shell-namestring output)
+                  (operation-effective-flags op))))
 
 (define-asdf/interface-class compute-flags-op (asdf:upward-operation)
   ())
@@ -64,16 +66,14 @@
   NIL)
 
 (defmethod execute ((op link-op) inputs outputs)
-  (let ((output (first outputs))
-        (flags (merge-flags (operation-direct-flags op)
-                            (operation-effective-flags op))))
+  (let ((output (first outputs)))
     (when (cdr outputs)
       (warn "Don't know how to use multiple outputs with ~a" op))
     (apply (operation-compiler-function op)
            (or (operation-compiler op) T)
            (mapcar #'minimal-shell-namestring inputs)
            (minimal-shell-namestring output)
-           flags)))
+           (operation-effective-flags op))))
 
 (defmacro define-operation-wrapper (name operation-class)
   `(defun ,name (system &rest args &key flags compiler force force-not verbose version &allow-other-keys)
