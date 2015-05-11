@@ -71,11 +71,20 @@
 (defmethod asdf:perform ((op link-op) (system c-system))
   (execute op (asdf:output-files 'assemble-op system) (list (c-system-output system))))
 
-(defmethod asdf:operate ((op asdf:compile-op) (system c-system) &rest args &key)
-  (apply #'asdf:operate 'link-op system args))
+(defmacro define-operate-delegator (from-op to-op)
+  `(defmethod asdf:operate ((op ,from-op) (system c-system) &rest args)
+     (apply #'call-next-method ',to-op system args)))
 
-(defmethod asdf:operate ((op asdf:load-op) (system c-system) &rest args &key)
-  (apply #'asdf:operate 'link-op system args))
+(define-operate-delegator asdf:compile-op link-op)
+(define-operate-delegator asdf:load-op link-op)
+(define-operate-delegator asdf:program-op link-op)
 
-(defmethod asdf:operate ((op asdf:program-op) (system c-system) &rest args &key)
-  (apply #'asdf:operate 'link-op system args))
+(defmethod asdf:operate :around ((op c-compiler-op) (system c-system) &key)
+  (let ((origdir (uiop:getcwd)))
+    (unless (operation-compiler-function op)
+      (setf (operation-compiler op)
+            (ensure-compiler (c-system-compiler system))))
+    (uiop:chdir (component-output-pathname system))
+    (unwind-protect
+         (call-next-method)
+      (uiop:chdir origdir))))
