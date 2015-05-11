@@ -7,7 +7,7 @@
 (in-package #:org.shirakumo.abcd)
 
 (defclass c-compiler ()
-  ((executable :initarg :executable :reader executable :allocation :class))
+  ((executable :initarg :executable :reader executable))
   (:default-initargs :executable "cc"))
 
 (defgeneric invoke (c-compiler args &key output error-output &allow-other-keys)
