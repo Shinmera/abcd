@@ -88,5 +88,5 @@
   (format nil "~@<linking ~3i~_~A~@:>" c))
 
 #+:verbose
-(defmethod asdf:perform :before (op component)
+(defmethod asdf:perform :before ((op c-compiler-op) component)
   (v:trace :abcd.build "~a" (asdf:action-description op component)))
