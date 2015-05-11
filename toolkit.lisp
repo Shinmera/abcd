@@ -13,7 +13,7 @@
     (T (princ-to-string thing))))
 
 (defmacro shellify (&body options)
-  `(format NIL ,(format NIL "~{~~@[~a~~]~^ ~}" (mapcar #'first options))
+  `(format NIL ,(format NIL "~{~~@[~a ~~]~}" (mapcar #'first options))
            ,@(apply #'append (mapcar #'rest options))))
 
 (defmacro with-cleaned-files ((files form) &body body)
@@ -53,7 +53,7 @@
 
 (defun merge-flags (flags &optional defaults)
   ;; Merge inexistent
-  (loop for (flag . value) on defaults by #'cddr
+  (loop for (flag value) on defaults by #'cddr
         unless (getf flags flag)
         do (push value flags)
            (push flag flags))
@@ -61,7 +61,7 @@
   ;; (loop for (flag . value) on flags by #'cddr
   ;;       when (consp value)
   ;;       do ())
-  )
+  flags)
 
 (defun assembled-file (pathname)
   (make-pathname :type "o" :defaults pathname))
@@ -79,3 +79,12 @@
             while parent
             do (push-component parent)))
     (format NIL "~{~a~^/~}" comps)))
+
+(defun component-output-pathname (component)
+  (funcall asdf::*output-translation-function*
+           (asdf:component-pathname component)))
+
+(defun minimal-shell-namestring (pathname)
+  (uiop:native-namestring
+   (uiop:enough-pathname
+    pathname (uiop:getcwd))))
