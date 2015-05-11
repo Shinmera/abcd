@@ -79,6 +79,14 @@
 (define-operate-delegator asdf:load-op link-op)
 (define-operate-delegator asdf:program-op link-op)
 
+;; This method is run after the usual around for flag-components. We
+;; don't need to save the flags, only overwrite them with the correct
+;; merging order for systems. Operation flags should override system
+;; flags while other component flags override all.
+(defmethod asdf:perform :before ((op c-compiler-op) (system c-system))
+  (setf (operation-effective-flags op)
+        (merge-flags (operation-direct-flags op) (component-effective-flags system))))
+
 (defmethod asdf:operate :around ((op c-compiler-op) (system c-system) &key)
   (let ((origdir (uiop:getcwd)))
     (unless (operation-compiler op)
