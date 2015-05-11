@@ -12,10 +12,11 @@
 
 (defgeneric invoke (c-compiler args &key output error-output &allow-other-keys)
   (:method (c-compiler args &rest kargs &key (output T) (error-output T))
-    (apply #'uiop:run-program (etypecase args
-                                (list (cons (executable c-compiler) (mapcar #'externalize args)))
-                                (string (format NIL "~a ~a" (executable c-compiler) args)))
-           :output output :error-output error-output kargs)))
+    (let ((command (etypecase args
+                     (list (cons (executable c-compiler) (mapcar #'externalize args)))
+                     (string (format NIL "~a ~a" (executable c-compiler) args)))))
+      #+:verbose (v:trace :abcd.compiler "Invoking ~a" command)
+      (apply #'uiop:run-program command :output output :error-output error-output kargs))))
 
 (defvar *default-compiler* (make-instance 'c-compiler))
 
@@ -27,7 +28,7 @@
                           &allow-other-keys)
   (:method ((compiler T) from to &rest args &key)
     (apply #'c-preprocess *default-compiler* from to args))
-  (:method ((c-compiler c-compiler) from to &key (warnings :all)
+  (:method ((c-compiler c-compiler) from to &key warnings
                                                  source
                                                  standard
                                                  options
@@ -53,7 +54,7 @@
                         &allow-other-keys)
   (:method ((compiler T) from to &rest args &key)
     (apply #'c-assemble *default-compiler* from to args))
-  (:method ((c-compiler c-compiler) from to &key (warnings :all)
+  (:method ((c-compiler c-compiler) from to &key warnings
                                                  optimize
                                                  debug
                                                  source
