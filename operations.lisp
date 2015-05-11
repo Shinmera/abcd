@@ -75,20 +75,6 @@
            (minimal-shell-namestring output)
            (operation-effective-flags op))))
 
-(defmacro define-operation-wrapper (name operation-class)
-  `(defun ,name (system &rest args &key flags compiler force force-not verbose version &allow-other-keys)
-     (declare (ignore force force-not verbose version))
-     (apply #'asdf:operate
-            (make-instance ',operation-class
-                           :flags flags
-                           :compiler (when compiler (ensure-compiler compiler)))
-            system args)
-     T))
-
-(define-operation-wrapper preprocess-system preprocess-op)
-(define-operation-wrapper assemble-system assemble-op)
-(define-operation-wrapper link-system link-op)
-
 (defmethod asdf:action-description ((op compute-flags-op) (c asdf:component))
   (format nil "~@<computing flags for ~3i~_~A~@:>" c))
 
