@@ -6,33 +6,40 @@
 
 (in-package #:org.shirakumo.abcd)
 
-(defvar *default-flags* '(:errors :all))
+(defvar *default-flags* '(:warnings :all))
 
 (define-asdf/interface-class c-compiler-op (asdf:operation)
   ((direct-flags :initarg :flags :accessor operation-direct-flags)
    (effective-flags :initform *default-flags* :accessor operation-effective-flags)
-   (compiler-function :initarg :compiler-function :accessor operation-compiler-function))
+   (compiler-function :initarg :compiler-function :accessor operation-compiler-function)
+   (compiler :initarg :compiler :accessor operation-compiler))
   (:default-initargs
    :flags ()
-   :compiler-arguments ()
+   :compiler NIL
    :compiler-function #'c-compile))
 
-(defvar *level* 0)
-
-(defmethod asdf:perform :around ((op c-compiler-op) (c asdf:component))
-  (let ((*level* (1+ *level*)))
-    (format T "~&[~d] ~a~%" *level* (asdf:action-description op c))
-    (call-next-method)))
-
 (defmethod execute ((op c-compiler-op) inputs outputs)
-  (loop for input in inputs
-        for output in outputs
-        do (apply (operation-compiler-function op) T input output
-                  (merge-flags (operation-direct-flags op)
-                               (operation-effective-flags op)))))
+  (let ((flags (merge-flags (operation-direct-flags op)
+                            (operation-effective-flags op))))
+    (loop for input in inputs
+          for output in outputs
+          do (apply (operation-compiler-function op)
+                    (or (operation-compiler op) T)
+                    (minimal-shell-namestring input)
+                    (minimal-shell-namestring output)
+                    flags))))
 
-(define-asdf/interface-class preprocess-op (c-compiler-op asdf:sideway-operation)
-  ((asdf:sideway-operation :initform NIL :allocation :class))
+(define-asdf/interface-class compute-flags-op (asdf:upward-operation)
+  ())
+
+(defmethod asdf:operation-done-p ((op compute-flags-op) component)
+  NIL)
+
+(defmethod asdf:perform ((op compute-flags-op) component)
+  NIL)
+
+(define-asdf/interface-class preprocess-op (c-compiler-op asdf:selfward-operation asdf:sideway-operation)
+  ((asdf:selfward-operation :initform 'compute-flags-op :allocation :class))
   (:default-initargs
    :compiler-function #'c-preprocess))
 
@@ -40,17 +47,16 @@
   NIL)
 
 (define-asdf/interface-class assemble-op (c-compiler-op asdf:selfward-operation asdf:sideway-operation asdf:downward-operation)
-  ((asdf:selfward-operation :initform 'preprocess-op :allocation :class)
-   (asdf:sideway-operation :initform NIL :allocation :class)
-   (asdf:downward-operation :initform NIL :allocation :class))
+  ((asdf:selfward-operation :initform '(compute-flags-op preprocess-op) :allocation :class))
   (:default-initargs
    :compiler-function #'c-assemble))
 
 (defmethod asdf:perform ((op assemble-op) component)
   NIL)
 
-(define-asdf/interface-class link-op (c-compiler-op asdf:downward-operation)
-  ((asdf:downward-operation :initform 'assemble-op :allocation :class))
+(define-asdf/interface-class link-op (c-compiler-op asdf:selfward-operation asdf:downward-operation)
+  ((asdf:selfward-operation :initform 'compute-flags-op :allocation :class)
+   (asdf:downward-operation :initform 'assemble-op :allocation :class))
   (:default-initargs
    :compiler-function #'c-link))
 
@@ -58,27 +64,33 @@
   NIL)
 
 (defmethod execute ((op link-op) inputs outputs)
-  (let ((output (first outputs)))
+  (let ((output (first outputs))
+        (flags (merge-flags (operation-direct-flags op)
+                            (operation-effective-flags op))))
     (when (cdr outputs)
       (warn "Don't know how to use multiple outputs with ~a" op))
-    (apply (operation-compiler-function op) T inputs output
-           (merge-flags (operation-direct-flags op)
-                        (operation-effective-flags op)))))
+    (apply (operation-compiler-function op)
+           (or (operation-compiler op) T)
+           (mapcar #'minimal-shell-namestring inputs)
+           (minimal-shell-namestring output)
+           flags)))
 
-(defun preprocess-system (system &rest args &key flags force force-not verbose version &allow-other-keys)
-  (declare (ignore force force-not verbose version))
-  (apply 'asdf:operate (make-instance 'preprocess-op :flags flags) system args)
-  T)
+(defmacro define-operation-wrapper (name operation-class)
+  `(defun ,name (system &rest args &key flags compiler force force-not verbose version &allow-other-keys)
+     (declare (ignore force force-not verbose version))
+     (apply #'asdf:operate
+            (make-instance ',operation-class
+                           :flags flags
+                           :compiler (when compiler (ensure-compiler compiler)))
+            system args)
+     T))
 
-(defun assemble-system (system &rest args &key flags force force-not verbose version &allow-other-keys)
-  (declare (ignore force force-not verbose version))
-  (apply 'asdf:operate (make-instance 'assemble-op :flags flags) system args)
-  T)
+(define-operation-wrapper preprocess-system preprocess-op)
+(define-operation-wrapper assemble-system assemble-op)
+(define-operation-wrapper link-system link-op)
 
-(defun link-system (system &rest args &key flags force force-not verbose version &allow-other-keys)
-  (declare (ignore force force-not verbose version))
-  (apply 'asdf:operate (make-instance 'link-op :flags flags) system args)
-  T)
+(defmethod asdf:action-description ((op compute-flags-op) (c asdf:component))
+  (format nil "~@<computing flags for ~3i~_~A~@:>" c))
 
 (defmethod asdf:action-description ((op preprocess-op) (c asdf:component))
   (format nil "~@<preprocessing ~3i~_~A~@:>" c))
@@ -88,3 +100,7 @@
 
 (defmethod asdf:action-description ((op link-op) (c asdf:component))
   (format nil "~@<linking ~3i~_~A~@:>" c))
+
+#+:verbose
+(defmethod asdf:perform :before (op component)
+  (v:trace :abcd.build "~a" (asdf:action-description op component)))
