@@ -163,6 +163,7 @@
 
 (defun ensure-compiler (thing)
   (etypecase thing
+    ((eql T) *default-compiler*)
     (c-compiler thing)
     ((or string symbol)
      (ensure-compiler (list thing)))
