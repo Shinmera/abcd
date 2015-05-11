@@ -81,7 +81,7 @@
 
 (defmethod asdf:operate :around ((op c-compiler-op) (system c-system) &key)
   (let ((origdir (uiop:getcwd)))
-    (unless (operation-compiler-function op)
+    (unless (operation-compiler op)
       (setf (operation-compiler op)
             (ensure-compiler (c-system-compiler system))))
     (uiop:chdir (component-output-pathname system))
