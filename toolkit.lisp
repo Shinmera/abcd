@@ -51,12 +51,13 @@
                   "i"))
      :defaults pathname)))
 
+(defvar *nothing* (make-symbol "NOTHING"))
 (defun merge-flags (flags &optional defaults)
   ;; Merge inexistent
   (loop for (flag value) on defaults by #'cddr
-        unless (getf flags flag)
-        do (push value flags)
-           (push flag flags))
+        do (when (eql (getf flags flag *nothing*) *nothing*)
+             (push value flags)
+             (push flag flags)))
   ;; Handle multiples
   ;; (loop for (flag . value) on flags by #'cddr
   ;;       when (consp value)
@@ -88,3 +89,24 @@
   (uiop:native-namestring
    (uiop:enough-pathname
     pathname (uiop:getcwd))))
+
+(defun decode-version (version)
+  (let ((parts ())
+        (output (make-string-output-stream)))
+    (flet ((pushpart ()
+             (push (parse-integer (get-output-stream-string output)) parts)
+             (setf output (make-string-output-stream))))
+      (loop for char across version
+            do (case char
+                 (#\. (pushpart))
+                 (T (write-char char output)))
+            finally (pushpart)))
+    (nreverse parts)))
+
+(defun version< (lower higher)
+  (loop for l in (decode-version lower)
+        for h in (decode-version higher)
+        do (when (> l h)
+             (return NIL))
+           (when (< l h)
+             (return T))))
