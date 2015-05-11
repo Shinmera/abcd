@@ -7,14 +7,23 @@
 (in-package #:org.shirakumo.abcd)
 
 (define-asdf/interface-class flag-component (asdf:component)
-  ((flags :initform () :initarg :flags :accessor component-flags)))
+  ((direct-flags :initform () :initarg :flags :accessor component-direct-flags)
+   (effective-flags :accessor component-effective-flags)))
+
+(defmethod asdf:perform ((op compute-flags-op) (component flag-component))
+  (setf (component-effective-flags component)
+        (if (and (typep component 'asdf:child-component)
+                 (typep (asdf:component-parent component) 'flag-component))
+            (merge-flags (component-direct-flags component)
+                         (component-effective-flags (asdf:component-parent component)))
+            (component-direct-flags component))))
 
 (defmethod asdf:perform :around ((op c-compiler-op) (component flag-component))
   (let ((current-flags (operation-effective-flags op)))
     (unwind-protect
          (progn
            (setf (operation-effective-flags op)
-                 (merge-flags (component-flags component) (operation-effective-flags op)))
+                 (merge-flags (component-effective-flags component) (operation-effective-flags op)))
            (call-next-method))
       (setf (operation-effective-flags op) current-flags))))
 
