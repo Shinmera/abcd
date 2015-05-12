@@ -39,18 +39,14 @@
       'c++-file))
 
 ;; Allow using :HEADER as well as :FILE in c-system definitions.
-(defvar *standard-asdf-class-for-type* #'asdf::class-for-type)
 (defvar *default-header-class* 'c-header)
 
-(defun asdf/parse-defsystem:class-for-type (parent type)
-  (or (and (eq type :header)
-           (asdf::coerce-class
-            (or (loop for p = parent then (asdf:component-parent p)
-                      while p
-                      thereis (and (typep p 'c-system) (default-header-class p)))
-                *default-header-class*)
-            :package :asdf/interface :super 'asdf:component :error nil))
-      (funcall *standard-asdf-class-for-type* parent type)))
+(define-component-name-resolver :header (parent)
+  (uiop/utility:coerce-class
+   (or (loop for p = parent then (asdf:component-parent p)
+             while p thereis (and (typep p 'c-system) (default-header-class p)))
+       *default-header-class*)
+   :package :asdf/interface :super 'asdf:component :error nil))
 
 (defmacro define-downard-appending (name op component)
   `(defmethod ,name ((op ,op) (component ,component))
