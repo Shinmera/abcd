@@ -15,8 +15,10 @@
   :serial T
   :components ((:file "package")
                (:file "toolkit")
+               (:file "defsystem")
                (:file "compilers")
                (:file "operations")
                (:file "components")
+               (:file "conditionals")
                (:file "systems"))
   :depends-on ())
