@@ -24,15 +24,13 @@
                                                   source
                                                   standard
                                                   options
-                                                  arguments
                           &allow-other-keys)
   (:method ((compiler T) from to &rest args &key)
     (apply #'c-preprocess *default-compiler* from to args))
   (:method ((c-compiler c-compiler) from to &key warnings
                                                  source
                                                  standard
-                                                 options
-                                                 arguments)
+                                                 options)
     (invoke c-compiler
             (shellify
              ("-E~*" T)
@@ -40,7 +38,6 @@
              ("-x~a" source)
              ("-std=~a" standard)
              ("-Wp~{,~a~}" options)
-             ("~{-Xpreprocessor ~a~^ ~}" arguments)
              ("-o ~a" to)
              ("~a" from)))))
 
@@ -50,7 +47,6 @@
                                                 source
                                                 standard
                                                 options
-                                                arguments
                         &allow-other-keys)
   (:method ((compiler T) from to &rest args &key)
     (apply #'c-assemble *default-compiler* from to args))
@@ -59,8 +55,7 @@
                                                  debug
                                                  source
                                                  standard
-                                                 options
-                                                 arguments)
+                                                 options)
     (invoke c-compiler
             (shellify
               ("-c~*" T)
@@ -70,7 +65,6 @@
               ("-x~a" source)
               ("-std=~a" standard)
               ("-Wa~{,~a~}" options)
-              ("~{-Xassembler ~a~^ ~}" arguments)
               ("-o ~a" to)
               ("~a" from)))))
 
@@ -78,7 +72,6 @@
                                             source
                                             standard
                                             options
-                                            arguments
                                             shared
                     &allow-other-keys)
   (:method ((compiler T) from to &rest args &key)
@@ -87,7 +80,6 @@
                                                  source
                                                  standard
                                                  options
-                                                 arguments
                                                  shared)
     (invoke c-compiler
             (shellify
@@ -95,7 +87,6 @@
               ("-x~a" source)
               ("-std=~a" standard)
               ("-Wl~{,~a~}" options)
-              ("~{-Xlinker ~a~^ ~}" arguments)
               ("-shared~*" shared)
               ("-o ~a" to)
               ("~:[~a~;~{~a~^ ~}~]" (listp from) from)))))
@@ -107,7 +98,6 @@
                                                standard
                                                shared
                                                options
-                                               arguments
                                                preprocess
                                                assemble
                                                link
@@ -115,7 +105,6 @@
   (:method ((compiler T) from to &rest args &key)
     (apply #'c-compile *default-compiler* from to args))
   (:method (c-compiler from to &rest args &key options
-                                               arguments
                                                (preprocess T)
                                                (assemble T)
                                                (link T))
@@ -123,7 +112,6 @@
              (apply function
                     from to
                     :options (getf options type)
-                    :arguments (getf arguments type)
                     args)))
       (cond ((and preprocess assemble link)
              (with-cleaned-files (processed (mapcar #'processed-file from))
