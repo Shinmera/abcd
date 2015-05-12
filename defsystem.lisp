@@ -6,13 +6,7 @@
 
 (in-package #:org.shirakumo.abcd)
 
-;; In order to allow more sensible names in ASDF component definitions we need
-;; to hack into the class resolving mechanism. Since ASDF is (sadly) not
-;; extensible by default in this regard, we have to override the function with
-;; our own.
-
 (defvar *type-name-map* (make-hash-table :test 'equal))
-(defvar *standard-asdf-class-for-type* #'asdf::class-for-type)
 
 (defun component-name-resolver (type-name)
   (gethash (string type-name) *type-name-map*))
@@ -28,6 +22,12 @@
          (lambda (,parent)
            ,@body)))
 
+;; In order to allow more sensible names in ASDF component definitions we need
+;; to hack into the class resolving mechanism. Since ASDF is (sadly) not
+;; extensible by default in this regard, we have to override the function with
+;; our own.
+
+(defvar *standard-asdf-class-for-type* #'asdf::class-for-type)
 (defun asdf/parse-defsystem:class-for-type (parent type)
   (or (let ((func (component-name-resolver type)))
         (when func
