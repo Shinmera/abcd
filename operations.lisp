@@ -67,6 +67,10 @@
 
 (defmethod execute ((op link-op) inputs outputs)
   (let ((output (first outputs)))
+    (unless outputs
+      (error "No output file specified."))
+    (unless inputs
+      (error "No input files to link specified."))
     (when (cdr outputs)
       (warn "Don't know how to use multiple outputs with ~a" op))
     (apply (operation-compiler-function op)
@@ -89,4 +93,4 @@
 
 #+:verbose
 (defmethod asdf:perform :before ((op c-compiler-op) component)
-  (v:trace :abcd.build "~a" (asdf:action-description op component)))
+  (v:trace :abcd.build "~@(~a~)" (asdf:action-description op component)))
