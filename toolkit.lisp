@@ -23,16 +23,13 @@
        (mapcar #'uiop:delete-file-if-exists ,files))))
 
 (defmacro define-asdf/interface-class (name direct-superclasses direct-slots &rest options)
-  (unintern name :org.shirakumo.abcd)
-  (let ((realname (intern (symbol-name name) :asdf/interface)))
-    (import realname :org.shirakumo.abcd)
-    `(progn
-       (export ',realname :asdf/interface)
-       (export ',realname :asdf)
-       (import ',realname :org.shirakumo.abcd)
-       (defclass ,realname ,direct-superclasses
-         ,direct-slots
-         ,@options))))
+  `(progn
+     (import ',name :asdf/interface)
+     (export ',name :asdf/interface)
+     (export ',name :asdf)
+     (defclass ,name ,direct-superclasses
+       ,direct-slots
+       ,@options)))
 
 (defun processed-file (pathname)
   (flet ((type= (type) (string-equal (pathname-type pathname) type)))
