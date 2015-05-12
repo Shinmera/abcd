@@ -8,7 +8,7 @@
 
 (define-asdf/interface-class flag-component (asdf:component)
   ((direct-flags :initform () :initarg :flags :accessor component-direct-flags)
-   (effective-flags :accessor component-effective-flags)))
+   (effective-flags :initform () :accessor component-effective-flags)))
 
 (defmethod asdf:perform ((op compute-flags-op) (component flag-component))
   (setf (component-effective-flags component)
@@ -102,14 +102,14 @@
                           (program-arguments program))
                     :output T :error-output T))
 
-(define-asdf/interface-class make (program)
-  ()
-  (:default-initargs
-   :command "make"))
+;; (define-asdf/interface-class make (program)
+;;   ()
+;;   (:default-initargs
+;;    :command "make"))
 
-(defmethod asdf:perform :around ((op asdf:compile-op) (make make))
-  (let ((args (program-arguments make)))
-    (push (asdf:component-name make) (program-arguments make))
-    (unwind-protect
-         (call-next-method)
-      (setf (program-arguments make) args))))
+;; (defmethod asdf:perform :around ((op asdf:compile-op) (make make))
+;;   (let ((args (program-arguments make)))
+;;     (push (asdf:component-name make) (program-arguments make))
+;;     (unwind-protect
+;;          (call-next-method)
+;;       (setf (program-arguments make) args))))
