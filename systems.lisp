@@ -9,20 +9,23 @@
 (define-asdf/interface-class c-system (asdf:system flag-component)
   ((default-header-class :initarg :default-header-class :initform 'c-header :accessor default-header-class)
    (compiler :initarg :compiler :initform T :accessor c-system-compiler)
-   (output :initarg :output :accessor c-system-output)
    (shared-library :initarg :shared-library :initform NIL :accessor c-system-shared-library)))
 
 ;; We have to do it like this due to kludges in field defaulting. Why oh why, ASDF.
+(defmethod asdf/component:component-build-operation ((system c-system))
+  (or (call-next-method)
+      'link-op))
+
 (defmethod asdf/component:module-default-component-class ((system c-system))
   (or (call-next-method)
       'c-file))
 
 (defun c-system-init (system)
-  (unless (slot-boundp system 'output)
-    (setf (c-system-output system)
+  (unless (asdf/system:component-build-pathname system)
+    (setf (asdf/system:component-build-pathname system)
           (asdf:component-name system)))
-  (setf (c-system-output system)
-        (merge-pathnames (c-system-output system)
+  (setf (asdf/system:component-build-pathname system)
+        (merge-pathnames (asdf/system:component-build-pathname system)
                          (asdf:system-source-directory system))))
 
 (defmethod initialize-instance :after ((system c-system) &key)
@@ -60,10 +63,12 @@
 (define-downard-appending asdf:output-files assemble-op asdf:parent-component)
 
 (defmethod asdf:output-files ((op link-op) (system c-system))
-  (values (list (c-system-output system)) T))
+  (values (list (asdf/system:component-build-pathname system)) T))
 
 (defmethod asdf:perform ((op link-op) (system c-system))
-  (execute op (asdf:output-files 'assemble-op system) (list (c-system-output system))))
+  (execute op
+           (asdf:output-files 'assemble-op system)
+           (list (asdf/system:component-build-pathname system))))
 
 (defmacro define-operate-delegator (from-op to-op)
   `(defmethod asdf:operate ((op ,from-op) (system c-system) &rest args)
