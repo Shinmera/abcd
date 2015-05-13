@@ -22,14 +22,23 @@
           (progn ,@body)
        (mapcar #'uiop:delete-file-if-exists ,files))))
 
+(defun make-asdf-visible (symbol)
+  (import symbol :asdf/interface)
+  (export symbol :asdf/interface)
+  (export symbol :asdf))
+
 (defmacro define-asdf/interface-class (name direct-superclasses direct-slots &rest options)
   `(progn
-     (import ',name :asdf/interface)
-     (export ',name :asdf/interface)
-     (export ',name :asdf)
+     (make-asdf-visible ',name)
      (defclass ,name ,direct-superclasses
        ,direct-slots
        ,@options)))
+
+(defmacro define-asdf/interface-function (name args &body forms)
+  `(progn
+     (make-asdf-visible ',name)
+     (defun ,name ,args
+       ,@forms)))
 
 (defun processed-file (pathname)
   (flet ((type= (type) (string-equal (pathname-type pathname) type)))

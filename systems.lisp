@@ -97,7 +97,7 @@
       (uiop:chdir origdir))))
 
 (defmacro define-operation-wrapper (name operation-class)
-  `(defun ,name (system &rest args &key options compiler force force-not verbose version &allow-other-keys)
+  `(define-asdf/interface-function ,name (system &rest args &key options compiler force force-not verbose version &allow-other-keys)
      (declare (ignore force force-not verbose version))
      (apply #'asdf:operate
             (make-instance ',operation-class
