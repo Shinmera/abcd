@@ -9,6 +9,7 @@
 (define-asdf/interface-class conditional-component (option-component asdf:module)
   ((test :initarg :test :initform #'test-conditional-fields :accessor conditional-test)
    (option :initarg :option :initform NIL :accessor conditional-option)
+   (flag :initarg :flag :initform NIL :accessor conditional-flag)
    (feature :initarg :feature :initform NIL :accessor conditional-feature)))
 
 (defun ensure-conditional-function (thing)
@@ -54,6 +55,9 @@
   (or (and (conditional-option component)
            (getf (component-effective-options component)
                  (conditional-option component)))
+      (and (conditional-flag component)
+           (find (conditional-flag component)
+                 (getf (component-effective-options component) :flags)))
       (and (conditional-feature component)
            (find (conditional-feature component) *features*))))
 
