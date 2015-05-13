@@ -6,20 +6,20 @@
 
 (in-package #:org.shirakumo.abcd)
 
-(defvar *default-flags* '(:warnings :all))
+(defvar *default-options* '(:warnings :all))
 
 (define-asdf/interface-class c-compiler-op (asdf:operation)
-  ((direct-flags :initarg :flags :accessor operation-direct-flags)
-   (effective-flags :initform *default-flags* :accessor operation-effective-flags)
+  ((direct-options :initarg :options :accessor operation-direct-options)
+   (effective-options :initform *default-options* :accessor operation-effective-options)
    (compiler-function :initarg :compiler-function :accessor operation-compiler-function)
    (compiler :initarg :compiler :accessor operation-compiler))
   (:default-initargs
-   :flags ()
+   :options ()
    :compiler NIL
    :compiler-function #'c-compile))
 
 (defmethod asdf/operation:operation-original-initargs ((op c-compiler-op))
-  `(:flags ,(operation-direct-flags op)
+  `(:options ,(operation-direct-options op)
     :compiler ,(operation-compiler op)))
 
 (defmethod execute ((op c-compiler-op) inputs outputs)
@@ -29,19 +29,19 @@
                   (or (operation-compiler op) T)
                   (minimal-shell-namestring input)
                   (minimal-shell-namestring output)
-                  (operation-effective-flags op))))
+                  (operation-effective-options op))))
 
-(define-asdf/interface-class compute-flags-op (asdf:upward-operation)
+(define-asdf/interface-class compute-options-op (asdf:upward-operation)
   ())
 
-(defmethod asdf:operation-done-p ((op compute-flags-op) component)
+(defmethod asdf:operation-done-p ((op compute-options-op) component)
   NIL)
 
-(defmethod asdf:perform ((op compute-flags-op) component)
+(defmethod asdf:perform ((op compute-options-op) component)
   NIL)
 
 (define-asdf/interface-class preprocess-op (c-compiler-op asdf:selfward-operation asdf:sideway-operation)
-  ((asdf:selfward-operation :initform 'compute-flags-op :allocation :class))
+  ((asdf:selfward-operation :initform 'compute-options-op :allocation :class))
   (:default-initargs
    :compiler-function #'c-preprocess))
 
@@ -49,7 +49,7 @@
   NIL)
 
 (define-asdf/interface-class assemble-op (c-compiler-op asdf:selfward-operation asdf:sideway-operation asdf:downward-operation)
-  ((asdf:selfward-operation :initform '(compute-flags-op preprocess-op) :allocation :class))
+  ((asdf:selfward-operation :initform '(compute-options-op preprocess-op) :allocation :class))
   (:default-initargs
    :compiler-function #'c-assemble))
 
@@ -57,7 +57,7 @@
   NIL)
 
 (define-asdf/interface-class link-op (c-compiler-op asdf:selfward-operation asdf:downward-operation)
-  ((asdf:selfward-operation :initform 'compute-flags-op :allocation :class)
+  ((asdf:selfward-operation :initform 'compute-options-op :allocation :class)
    (asdf:downward-operation :initform 'assemble-op :allocation :class))
   (:default-initargs
    :compiler-function #'c-link))
@@ -77,10 +77,10 @@
            (or (operation-compiler op) T)
            (mapcar #'minimal-shell-namestring inputs)
            (minimal-shell-namestring output)
-           (operation-effective-flags op))))
+           (operation-effective-options op))))
 
-(defmethod asdf:action-description ((op compute-flags-op) (c asdf:component))
-  (format nil "~@<computing flags for ~3i~_~A~@:>" c))
+(defmethod asdf:action-description ((op compute-options-op) (c asdf:component))
+  (format nil "~@<computing options for ~3i~_~A~@:>" c))
 
 (defmethod asdf:action-description ((op preprocess-op) (c asdf:component))
   (format nil "~@<preprocessing ~3i~_~A~@:>" c))

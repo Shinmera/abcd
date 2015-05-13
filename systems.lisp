@@ -6,7 +6,7 @@
 
 (in-package #:org.shirakumo.abcd)
 
-(define-asdf/interface-class c-system (asdf:system flag-component)
+(define-asdf/interface-class c-system (asdf:system option-component)
   ((default-header-class :initarg :default-header-class :initform 'c-header :accessor default-header-class)
    (compiler :initarg :compiler :initform T :accessor c-system-compiler)
    (shared-library :initarg :shared-library :initform NIL :accessor c-system-shared-library)))
@@ -78,13 +78,13 @@
 (define-operate-delegator asdf:load-op link-op)
 (define-operate-delegator asdf:program-op link-op)
 
-;; This method is run after the usual around for flag-components. We
-;; don't need to save the flags, only overwrite them with the correct
-;; merging order for systems. Operation flags should override system
-;; flags while other component flags override all.
+;; This method is run after the usual around for option-components. We
+;; don't need to save the options, only overwrite them with the correct
+;; merging order for systems. Operation options should override system
+;; options while other component options override all.
 (defmethod asdf:perform :before ((op c-compiler-op) (system c-system))
-  (setf (operation-effective-flags op)
-        (merge-flags (operation-direct-flags op) (component-effective-flags system))))
+  (setf (operation-effective-options op)
+        (merge-options (operation-direct-options op) (component-effective-options system))))
 
 (defmethod asdf:operate :around ((op c-compiler-op) (system c-system) &key)
   (let ((origdir (uiop:getcwd)))
@@ -97,11 +97,11 @@
       (uiop:chdir origdir))))
 
 (defmacro define-operation-wrapper (name operation-class)
-  `(defun ,name (system &rest args &key flags compiler force force-not verbose version &allow-other-keys)
+  `(defun ,name (system &rest args &key options compiler force force-not verbose version &allow-other-keys)
      (declare (ignore force force-not verbose version))
      (apply #'asdf:operate
             (make-instance ',operation-class
-                           :flags flags
+                           :options options
                            :compiler (when compiler (ensure-compiler compiler)))
             system args)
      T))

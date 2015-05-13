@@ -6,26 +6,26 @@
 
 (in-package #:org.shirakumo.abcd)
 
-(define-asdf/interface-class flag-component (asdf:component)
-  ((direct-flags :initform () :initarg :flags :accessor component-direct-flags)
-   (effective-flags :initform () :accessor component-effective-flags)))
+(define-asdf/interface-class option-component (asdf:component)
+  ((direct-options :initform () :initarg :options :accessor component-direct-options)
+   (effective-options :initform () :accessor component-effective-options)))
 
-(defmethod asdf:perform ((op compute-flags-op) (component flag-component))
-  (setf (component-effective-flags component)
+(defmethod asdf:perform ((op compute-options-op) (component option-component))
+  (setf (component-effective-options component)
         (if (and (typep component 'asdf:child-component)
-                 (typep (asdf:component-parent component) 'flag-component))
-            (merge-flags (component-direct-flags component)
-                         (component-effective-flags (asdf:component-parent component)))
-            (component-direct-flags component))))
+                 (typep (asdf:component-parent component) 'option-component))
+            (merge-options (component-direct-options component)
+                         (component-effective-options (asdf:component-parent component)))
+            (component-direct-options component))))
 
-(defmethod asdf:perform :around ((op c-compiler-op) (component flag-component))
-  (let ((current-flags (operation-effective-flags op)))
+(defmethod asdf:perform :around ((op c-compiler-op) (component option-component))
+  (let ((current-options (operation-effective-options op)))
     (unwind-protect
          (progn
-           (setf (operation-effective-flags op)
-                 (merge-flags (component-effective-flags component) (operation-effective-flags op)))
+           (setf (operation-effective-options op)
+                 (merge-options (component-effective-options component) (operation-effective-options op)))
            (call-next-method))
-      (setf (operation-effective-flags op) current-flags))))
+      (setf (operation-effective-options op) current-options))))
 
 (define-asdf/interface-class multi-type-source-file (asdf:source-file)
   ((types :initform () :initarg :types :accessor file-types)))
@@ -39,7 +39,7 @@
           (setf (asdf:file-type file) extension)
           (setf (asdf:component-name file) (subseq (asdf:component-name file) 0 lastdot)))))))
 
-(define-asdf/interface-class c-file (asdf:source-file flag-component)
+(define-asdf/interface-class c-file (asdf:source-file option-component)
   ((type :initform "c")))
 
 (defmethod print-object ((file c-file) stream)

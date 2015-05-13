@@ -52,28 +52,28 @@
   (make-pathname :type "o" :defaults pathname))
 
 (defvar *nothing* (make-symbol "NOTHING"))
-(defun merge-flags (flags &optional defaults)
+(defun merge-options (options &optional defaults)
   ;; Merge
-  (loop for (flag value) on defaults by #'cddr
-        for exval = (getf flags flag *nothing*)
-        do (unless (string= "-" flag :end2 1)
+  (loop for (option value) on defaults by #'cddr
+        for exval = (getf options option *nothing*)
+        do (unless (string= "-" option :end2 1)
              (cond ((eql exval *nothing*)
-                    (push value flags)
-                    (push flag flags))
+                    (push value options)
+                    (push option options))
                    ((and (listp value) (listp exval))
-                    (setf (getf flags flag) (append value exval))))))
+                    (setf (getf options option) (append value exval))))))
   ;; Process removals
-  (loop for (flag value) on flags by #'cddr
-        do (when (string= "-" flag :end2 1)
-             (let ((realflag (find-symbol (subseq (string flag) 1) "KEYWORD")))
+  (loop for (option value) on options by #'cddr
+        do (when (string= "-" option :end2 1)
+             (let ((realoption (find-symbol (subseq (string option) 1) "KEYWORD")))
                (cond ((eql value T)
-                      (remf flags realflag))
+                      (remf options realoption))
                      ((listp value)
-                      (setf (getf flags realflag)
+                      (setf (getf options realoption)
                             (remove-if (lambda (a) (find a value :test #'equal))
-                                       (getf flags realflag))))))
-             (remf flags flag)))
-  flags)
+                                       (getf options realoption))))))
+             (remf options option)))
+  options)
 
 (defun component-path (component)
   (let ((comps ()))

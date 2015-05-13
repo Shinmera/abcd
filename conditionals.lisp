@@ -6,9 +6,9 @@
 
 (in-package #:org.shirakumo.abcd)
 
-(define-asdf/interface-class conditional-component (flag-component asdf:module)
+(define-asdf/interface-class conditional-component (option-component asdf:module)
   ((test :initarg :test :initform #'test-conditional-fields :accessor conditional-test)
-   (flag :initarg :flag :initform NIL :accessor conditional-flag)
+   (option :initarg :option :initform NIL :accessor conditional-option)
    (feature :initarg :feature :initform NIL :accessor conditional-feature)))
 
 (defun ensure-conditional-function (thing)
@@ -51,9 +51,9 @@
     (call-next-method)))
 
 (defun test-conditional-fields (component)
-  (or (and (conditional-flag component)
-           (getf (component-effective-flags component)
-                 (conditional-flag component)))
+  (or (and (conditional-option component)
+           (getf (component-effective-options component)
+                 (conditional-option component)))
       (and (conditional-feature component)
            (find (conditional-feature component) *features*))))
 
