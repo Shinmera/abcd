@@ -53,15 +53,26 @@
 
 (defvar *nothing* (make-symbol "NOTHING"))
 (defun merge-flags (flags &optional defaults)
-  ;; Merge inexistent
+  ;; Merge
   (loop for (flag value) on defaults by #'cddr
-        do (when (eql (getf flags flag *nothing*) *nothing*)
-             (push value flags)
-             (push flag flags)))
-  ;; Handle multiples
-  ;; (loop for (flag . value) on flags by #'cddr
-  ;;       when (consp value)
-  ;;       do ())
+        for exval = (getf flags flag *nothing*)
+        do (unless (string= "-" flag :end2 1)
+             (cond ((eql exval *nothing*)
+                    (push value flags)
+                    (push flag flags))
+                   ((and (listp value) (listp exval))
+                    (setf (getf flags flag) (append value exval))))))
+  ;; Process removals
+  (loop for (flag value) on flags by #'cddr
+        do (when (string= "-" flag :end2 1)
+             (let ((realflag (find-symbol (subseq (string flag) 1) "KEYWORD")))
+               (cond ((eql value T)
+                      (remf flags realflag))
+                     ((listp value)
+                      (setf (getf flags realflag)
+                            (remove-if (lambda (a) (find a value :test #'equal))
+                                       (getf flags realflag))))))
+             (remf flags flag)))
   flags)
 
 (defun component-path (component)
@@ -107,3 +118,11 @@
              (return NIL))
            (when (< l h)
              (return T))))
+
+(defun with-clear-environment (command)
+  #+unix
+  (etypecase command
+    (cons (list* "env" "-i" command))
+    (string (format NIL "env -i ~a" command)))
+  #-unix
+  command)
