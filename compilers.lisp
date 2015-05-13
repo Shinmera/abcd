@@ -10,100 +10,82 @@
   ((executable :initarg :executable :reader executable))
   (:default-initargs :executable "cc"))
 
+(defun ensure-compiler (thing)
+  (etypecase thing
+    ((eql T) *default-compiler*)
+    (c-compiler thing)
+    ((or string symbol)
+     (ensure-compiler (list thing)))
+    (list
+     (apply #'make-instance
+            (uiop:coerce-class (first thing) :package :org.shirakumo.abcd :super 'c-compiler)
+            (rest thing)))))
+
 (defgeneric invoke (c-compiler args &key output error-output &allow-other-keys)
   (:method (c-compiler args &rest kargs &key (output T) (error-output T))
-    (let ((command (etypecase args
-                     (list (cons (executable c-compiler) (mapcar #'externalize args)))
-                     (string (format NIL "~a ~a" (executable c-compiler) args)))))
+    (let ((command (with-clear-environment
+                       (etypecase args
+                         (list (list* (executable c-compiler) (mapcar #'externalize args)))
+                         (string (format NIL "~a ~a" (executable c-compiler) args))))))
       #+:verbose (v:trace :abcd.compiler "Invoking ~a" command)
       (apply #'uiop:run-program command :output output :error-output error-output kargs))))
 
+(defmacro  define-compiler-method (name (compiler) &body flags)
+  (let ((flagargs (remove-duplicates
+                   (loop for flag in flags
+                         for arg = (loop for arg in flag when (and (symbolp arg) (not (eql arg T))) return arg)
+                         when arg collect arg)))
+        (c-compiler (gensym "C-COMPILER"))
+        (from (gensym "FROM"))
+        (to (gensym "TO")))
+    `(defmethod ,name ((,c-compiler ,compiler) ,from ,to &key ,@flagargs)
+       (invoke ,c-compiler
+               (shellify
+                 ,@flags
+                 ("-o ~a" ,to)
+                 ("~*~:[~:*~:*~a~;~:*~:*~{~a~^ ~}~]~*" ,from (listp ,from)))))))
+
+(defmacro define-standard-compiler-method (name (compiler) &body extra-flags)
+  `(define-compiler-method ,name (,compiler)
+     ,@extra-flags
+     ("-W~(~a~)" warnings)
+     ("-O~(~a~)" optimize)
+     ("-g~*" debug)
+     ("-x~a" language)
+     ("-std=~a" standard)
+     ("~{-f~(~a~)~^ ~}" flags)
+     ("~{-I~a~^ ~}" includes)
+     ("~{-L~a~^ ~}" libraries)))
+
 (defvar *default-compiler* (make-instance 'c-compiler))
 
-(defgeneric c-preprocess (c-compiler from to &key warnings
-                                                  source
-                                                  standard
-                                                  options
-                          &allow-other-keys)
-  (:method ((compiler T) from to &rest args &key)
-    (apply #'c-preprocess *default-compiler* from to args))
-  (:method ((c-compiler c-compiler) from to &key warnings
-                                                 source
-                                                 standard
-                                                 options)
-    (invoke c-compiler
-            (shellify
-             ("-E~*" T)
-             ("-W~(~a~)" warnings)
-             ("-x~a" source)
-             ("-std=~a" standard)
-             ("-Wp~{,~a~}" options)
-             ("-o ~a" to)
-             ("~a" from)))))
+(defgeneric c-preprocess (c-compiler from to &key &allow-other-keys)
+  (:method (compiler from to &rest args)
+    (apply #'call-next-method (ensure-compiler compiler) from to args)))
 
-(defgeneric c-assemble (c-compiler from to &key warnings
-                                                optimize
-                                                debug
-                                                source
-                                                standard
-                                                options
-                        &allow-other-keys)
-  (:method ((compiler T) from to &rest args &key)
-    (apply #'c-assemble *default-compiler* from to args))
-  (:method ((c-compiler c-compiler) from to &key warnings
-                                                 optimize
-                                                 debug
-                                                 source
-                                                 standard
-                                                 options)
-    (invoke c-compiler
-            (shellify
-              ("-c~*" T)
-              ("-W~(~a~)" warnings)
-              ("-O~(~a~)" optimize)
-              ("-g~*" debug)
-              ("-x~a" source)
-              ("-std=~a" standard)
-              ("-Wa~{,~a~}" options)
-              ("-o ~a" to)
-              ("~a" from)))))
+(define-standard-compiler-method c-preprocess (c-compiler)
+  ("-E~*" T)
+  ("-Wp~{,~a~}" options))
 
-(defgeneric c-link (c-compiler from to &key debug
-                                            source
-                                            standard
-                                            options
-                                            shared
-                    &allow-other-keys)
-  (:method ((compiler T) from to &rest args &key)
-    (apply #'c-link *default-compiler* from to args))
-  (:method ((c-compiler c-compiler) from to &key debug
-                                                 source
-                                                 standard
-                                                 options
-                                                 shared)
-    (invoke c-compiler
-            (shellify
-              ("-g~*" debug)
-              ("-x~a" source)
-              ("-std=~a" standard)
-              ("-Wl~{,~a~}" options)
-              ("-shared~*" shared)
-              ("-o ~a" to)
-              ("~:[~a~;~{~a~^ ~}~]" (listp from) from)))))
+(defgeneric c-assemble (c-compiler from to &key &allow-other-keys)
+  (:method (compiler from to &rest args)
+    (apply #'call-next-method (ensure-compiler compiler) from to args)))
 
-(defgeneric c-compile (c-compiler from to &key warnings
-                                               optimize
-                                               debug
-                                               source
-                                               standard
-                                               shared
-                                               options
-                                               preprocess
-                                               assemble
-                                               link
-                       &allow-other-keys)
-  (:method ((compiler T) from to &rest args &key)
-    (apply #'c-compile *default-compiler* from to args))
+(define-standard-compiler-method c-assemble (c-compiler)
+  ("-c~*" T)
+  ("-Wa~{,~a~}" options))
+
+(defgeneric c-link (c-compiler from to &key &allow-other-keys)
+  (:method (compiler from to &rest args)
+    (apply #'call-next-method (ensure-compiler compiler) from to args)))
+
+(define-standard-compiler-method c-link (c-compiler)
+  ("-shared~*" shared)
+  ("-Wl~{,~a~}" options))
+
+(defgeneric c-compile (c-compiler from to &key &allow-other-keys)
+  (:method (compiler from to &rest args)
+    (apply #'call-next-method (ensure-compiler compiler) from to args))
   (:method (c-compiler from to &rest args &key options
                                                (preprocess T)
                                                (assemble T)
@@ -148,14 +130,3 @@
 (defclass gcc (c-compiler)
   ()
   (:default-initargs :executable "gcc"))
-
-(defun ensure-compiler (thing)
-  (etypecase thing
-    ((eql T) *default-compiler*)
-    (c-compiler thing)
-    ((or string symbol)
-     (ensure-compiler (list thing)))
-    (list
-     (apply #'make-instance
-            (uiop:coerce-class (first thing) :package :org.shirakumo.abcd :super 'c-compiler)
-            (rest thing)))))
