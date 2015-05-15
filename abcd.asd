@@ -21,4 +21,4 @@
                (:file "components")
                (:file "conditionals")
                (:file "systems"))
-  :depends-on ())
+  :depends-on (:trivial-features))
