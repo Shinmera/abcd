@@ -65,7 +65,7 @@
 
 (define-standard-compiler-method c-preprocess (c-compiler)
   ("-E~*" T)
-  ("-Wp~{,~a~}" options))
+  ("-Wp~{,~a~}" preprocessor))
 
 (defgeneric c-assemble (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
@@ -73,7 +73,7 @@
 
 (define-standard-compiler-method c-assemble (c-compiler)
   ("-c~*" T)
-  ("-Wa~{,~a~}" options))
+  ("-Wa~{,~a~}" assembler))
 
 (defgeneric c-link (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
@@ -81,7 +81,7 @@
 
 (define-standard-compiler-method c-link (c-compiler)
   ("-shared~*" shared)
-  ("-Wl~{,~a~}" options))
+  ("-Wl~{,~a~}" linker))
 
 (defgeneric c-compile (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
@@ -93,7 +93,7 @@
     (flet ((call-with (type function from to)
              (apply function
                     from to
-                    :options (getf options type)
+                    (find-symbol (string type) :org.shirakumo.abcd) (getf options type)
                     args)))
       (cond ((and preprocess assemble link)
              (with-cleaned-files (processed (mapcar #'processed-file from))
