@@ -85,6 +85,10 @@
              (remf options option)))
   options)
 
+(defmacro nmerge-options (options new-flags)
+  `(setf ,options
+         (merge-options ,new-flags ,options)))
+
 (defun component-path (component)
   (let ((comps ()))
     (flet ((push-component (c)
