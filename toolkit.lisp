@@ -70,7 +70,8 @@
                     (push value options)
                     (push option options))
                    ((and (listp value) (listp exval))
-                    (setf (getf options option) (append value exval))))))
+                    (dolist (item value)
+                      (pushnew item (getf options option) :test #'equal))))))
   ;; Process removals
   (loop for (option value) on options by #'cddr
         do (when (string= "-" option :end2 1)
