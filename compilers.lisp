@@ -6,6 +6,8 @@
 
 (in-package #:org.shirakumo.abcd)
 
+(defvar *default-compiler* (make-instance 'c-compiler))
+
 (defclass c-compiler ()
   ((executable :initarg :executable :reader executable))
   (:default-initargs :executable "cc"))
@@ -56,8 +58,6 @@
      ("~{-f~(~a~)~^ ~}" flags)
      ("~{-I~a~^ ~}" includes)
      ("~{-L~a~^ ~}" libraries)))
-
-(defvar *default-compiler* (make-instance 'c-compiler))
 
 (defgeneric c-preprocess (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)

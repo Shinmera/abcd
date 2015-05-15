@@ -41,9 +41,7 @@
   (or (call-next-method)
       'c++-file))
 
-;; Allow using :HEADER as well as :FILE in c-system definitions.
 (defvar *default-header-class* 'c-header)
-
 (define-component-name-resolver :header (parent)
   (uiop/utility:coerce-class
    (or (loop for p = parent then (asdf:component-parent p)

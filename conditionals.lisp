@@ -12,14 +12,6 @@
    (flag :initarg :flag :initform NIL :accessor conditional-flag)
    (feature :initarg :feature :initform NIL :accessor conditional-feature)))
 
-(defun ensure-conditional-function (thing)
-  (typecase thing
-    (cons (cond ((eql (car thing) 'lambda)
-                 (compile NIL thing))
-                (T (compile NIL `(lambda (*) (declare (ignorable *)) (progn ,thing))))))
-    (function thing)
-    (T (constantly thing))))
-
 (defun initialize-conditional-component (component &key test &allow-other-keys)
   (when test
     (setf (conditional-test component)
@@ -77,3 +69,11 @@
 (define-component-name-resolver :unless (parent)
   (declare (ignore parent))
   (find-class 'when-condition))
+
+(defun ensure-conditional-function (thing)
+  (typecase thing
+    (cons (cond ((eql (car thing) 'lambda)
+                 (compile NIL thing))
+                (T (compile NIL `(lambda (*) (declare (ignorable *)) (progn ,thing))))))
+    (function thing)
+    (T (constantly thing))))
