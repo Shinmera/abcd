@@ -10,22 +10,23 @@
   (:use #:cl)
   ;; compilers.lisp
   (:export
+   #:*default-compiler*
    #:c-compiler
    #:executable
+   
+   #:ensure-compiler
    #:invoke
-   #:*default-compiler*
    #:c-preprocess
    #:c-assemble
    #:c-link
    #:c-compile
    #:clang
-   #:gcc
-   #:ensure-compiler)
+   #:gcc)
   ;; components.lisp
   (:export
-   #:flag-component
-   #:component-direct-flags
-   #:component-effective-flags
+   #:option-component
+   #:component-direct-options
+   #:component-effective-options
    
    #:multi-type-source-file
    #:file-types
@@ -34,19 +35,36 @@
    #:c-header
    #:c++-file
    #:c++-header
-   #:program
-   #:make)
+   #:program)
+  ;; conditionals.lisp
+  (:export
+   #:conditional-component
+   #:conditional-test
+   #:conditional-option
+   #:conditional-flag
+   #:conditional-feature
+   
+   #:test-condition
+   #:when-condition
+   #:unless-condition
+   
+   #:ensure-conditional-function)
+  ;; defsystem.lisp
+  (:export
+   #:component-name-resolver
+   #:remove-component-name-resolver
+   #:define-component-name-resolver)
   ;; operations.lisp
   (:export
-   #:*default-flags*
+   #:*default-options*
    #:c-compiler-op
-   #:operation-direct-flags
-   #:operation-effective-flags
+   #:operation-direct-options
+   #:operation-effective-options
    #:operation-compiler-function
    #:operation-compiler
    #:execute
    
-   #:compute-flags-op
+   #:compute-options-op
    #:preprocess-op
    #:assemble-op
    #:link-op)
@@ -55,12 +73,10 @@
    #:c-system
    #:default-header-class
    #:c-system-compiler
-   #:c-system-output
    #:c-system-shared-library
    
    #:c++-system
    
-   #:*standard-asdf-class-for-type*
    #:*default-header-class*
    
    #:preprocess-system
@@ -71,7 +87,8 @@
    #:externalize
    #:shellify
    #:with-cleaned-files
-   #:merge-flags
+   #:merge-options
    #:component-path
    #:minimal-shell-namestring
-   #:version<))
+   #:version<
+   #:with-clear-environment))
