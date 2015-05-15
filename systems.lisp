@@ -21,9 +21,17 @@
       'c-file))
 
 (defun c-system-init (system)
+  ;; Default output pathname
   (unless (asdf/system:component-build-pathname system)
     (setf (asdf/system:component-build-pathname system)
-          (asdf:component-name system)))
+          (make-pathname :name (asdf:component-name system))))
+  ;; Adapt flags and output pathname for dynamic libs
+  (when (c-system-shared-library system)
+    (nmerge-options (component-direct-options system) `(:flags (:pic)
+                                                        :shared T))
+    (setf (asdf/system:component-build-pathname system)
+          (sharedobject-file (asdf/system:component-build-pathname system))))
+  ;; Make absolute to source directory if possible
   (setf (asdf/system:component-build-pathname system)
         (merge-pathnames (asdf/system:component-build-pathname system)
                          (asdf:system-source-directory system))))

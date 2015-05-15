@@ -60,6 +60,11 @@
 (defun assembled-file (pathname)
   (make-pathname :type "o" :defaults pathname))
 
+(defun sharedobject-file (pathname)
+  (make-pathname :type #+unix "so"
+                       #+windows "dll"
+                 :defaults pathname))
+
 (defvar *nothing* (make-symbol "NOTHING"))
 (defun merge-options (options &optional defaults)
   ;; Merge
