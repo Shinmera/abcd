@@ -48,9 +48,7 @@
      ("-g~*" debug)
      ("-x~a" language)
      ("-std=~a" standard)
-     ("~{-f~(~a~)~^ ~}" flags)
-     ("~{-I~a~^ ~}" includes)
-     ("~{-L~a~^ ~}" libraries)))
+     ("~{-f~(~a~)~^ ~}" flags)))
 
 (defgeneric c-preprocess (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
@@ -58,7 +56,8 @@
 
 (define-standard-compiler-method c-preprocess (c-compiler)
   ("-E~*" T)
-  ("-Wp~{,~a~}" preprocessor))
+  ("-Wp~{,~a~}" preprocessor)
+  ("~{-I~a~^ ~}" include-dirs))
 
 (defgeneric c-assemble (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
@@ -66,7 +65,8 @@
 
 (define-standard-compiler-method c-assemble (c-compiler)
   ("-c~*" T)
-  ("-Wa~{,~a~}" assembler))
+  ("-Wa~{,~a~}" assembler)
+  ("~{-I~a~^ ~}" include-dirs))
 
 (defgeneric c-link (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
@@ -74,7 +74,9 @@
 
 (define-standard-compiler-method c-link (c-compiler)
   ("-shared~*" shared)
-  ("-Wl~{,~a~}" linker))
+  ("-Wl~{,~a~}" linker)
+  ("~{-L~a~^ ~}" library-dirs)
+  ("~{-l~a~^ ~}" libraries))
 
 (defgeneric c-compile (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
