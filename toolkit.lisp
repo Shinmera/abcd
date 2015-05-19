@@ -6,6 +6,11 @@
 
 (in-package #:org.shirakumo.abcd)
 
+(defun ensure-list (thing)
+  (if (listp thing)
+      thing
+      (list thing)))
+
 (defun externalize (thing)
   (typecase thing
     (pathname (uiop:native-namestring thing))
