@@ -59,7 +59,9 @@
          (lambda (,system ,@args)
            ,@body)))
 
-(defmethod asdf/find-component:resolve-dependency-combination ((system c-system) name args)
+;; We'd like to specialise on c-system here, but in the load order the class isn't defined
+;; yet, so instead in order to avoid method clashes we specialise on symbol.
+(defmethod asdf/find-component:resolve-dependency-combination (system (name symbol) args)
   (or (let ((func (dependency-resolver name)))
         (when func
           (apply func system args)))
