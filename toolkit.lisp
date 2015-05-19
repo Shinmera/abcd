@@ -60,6 +60,10 @@
 (defun assembled-file (pathname)
   (make-pathname :type "o" :defaults pathname))
 
+(defun archive-file (pathname)
+  (make-pathname :type "a"
+                 :defaults pathname))
+
 (defun sharedobject-file (pathname)
   (make-pathname :type #+unix "so"
                        #+windows "dll"
@@ -145,3 +149,29 @@
     (string (format NIL "env -i ~a" command)))
   #-unix
   command)
+
+(defun find-components (item component &key (key #'identity) (test #'eql))
+  (let ((found ()))
+    (labels ((traverse (component)
+               (when (typep component 'asdf:parent-component)
+                 (dolist (child (asdf:component-children component))
+                   (when (funcall test (funcall key child) item)
+                     (push child found))
+                   (traverse child)))))
+      (traverse component))
+    found))
+
+(defmacro define-function-map-wrappers (base-name &optional (map-test ''equal))
+  (let ((map-name (intern (format NIL "*~a-MAP*" base-name)))
+        (remove-name (intern (format NIL "REMOVE-~a" base-name)))
+        (function (gensym "FUNCTION"))
+        (name (gensym "NAME")))
+    `(progn
+       (defvar ,map-name (make-hash-table :test ,map-test))
+       (defun ,base-name (,name)
+         (gethash (string ,name) ,map-name))
+       (defun (setf ,base-name) (,function ,name)
+         (setf (gethash (string ,name) ,map-name)
+               ,function))
+       (defun ,remove-name (,name)
+         (remhash (string ,name) ,map-name)))))
