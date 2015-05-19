@@ -9,7 +9,8 @@
 (define-asdf/interface-class c-system (asdf:system option-component)
   ((default-header-class :initarg :default-header-class :initform 'c-header :accessor default-header-class)
    (compiler :initarg :compiler :initform T :accessor c-system-compiler)
-   (shared-library :initarg :shared-library :initform NIL :accessor c-system-shared-library)))
+   (shared-library :initarg :shared-library :initform NIL :accessor c-system-shared-library)
+   (static-library :initarg :static-library :initform NIL :accessor c-system-static-library)))
 
 ;; We have to do it like this due to kludges in field defaulting. Why oh why, ASDF.
 (defmethod asdf/component:component-build-operation ((system c-system))
@@ -25,12 +26,10 @@
   (unless (asdf/system:component-build-pathname system)
     (setf (asdf/system:component-build-pathname system)
           (make-pathname :name (asdf:component-name system))))
-  ;; Adapt flags and output pathname for dynamic libs
+  ;; Adapt flags for dynamic libs
   (when (c-system-shared-library system)
     (nmerge-options (component-direct-options system) `(:flags (:pic)
-                                                        :shared T))
-    (setf (asdf/system:component-build-pathname system)
-          (sharedobject-file (asdf/system:component-build-pathname system))))
+                                                        :shared T)))
   ;; Make absolute to source directory if possible
   (setf (asdf/system:component-build-pathname system)
         (merge-pathnames (asdf/system:component-build-pathname system)
