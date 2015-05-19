@@ -38,7 +38,7 @@
                (shellify
                  ,@flags
                  ("-o ~a" ,to)
-                 ("~*~:[~:*~:*~a~;~:*~:*~{~a~^ ~}~]~*" ,from (listp ,from)))))))
+                 ("~{~a~^ ~}" (ensure-list ,from)))))))
 
 (defmacro define-standard-compiler-method (name (compiler) &body extra-flags)
   `(define-compiler-method ,name (,compiler)
