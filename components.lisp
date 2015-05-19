@@ -28,19 +28,37 @@
       (setf (operation-effective-options op) current-options))))
 
 (define-asdf/interface-class multi-type-source-file (asdf:source-file)
-  ((types :initform () :initarg :types :accessor file-types)))
+  ((types :initform () :initarg :types :accessor file-types)
+   (filename :initarg :filename :accessor file-name)))
+
+(defun initialize-multi-type-source-file (file)
+  (let ((filename (asdf:component-name file)))
+    (let ((lastdot (position #\. (asdf:component-name file) :from-end T)))
+      (when lastdot
+        (let ((extension (find (subseq (asdf:component-name file) (1+ lastdot))
+                               (file-types file) :test #'string=)))
+          (when extension
+            (setf (asdf:file-type file) extension)
+            (setf filename (subseq (asdf:component-name file) 0 lastdot))))))
+    (setf (file-name file) filename))
+  (setf (asdf:component-name file)
+        (format NIL "~a.~a"
+                (file-name file)
+                (asdf:file-type file))))
+
+(defmethod asdf:component-pathname ((file multi-type-source-file))
+  (make-pathname :name (file-name file) :type (asdf:file-type file)
+                 :defaults (uiop:pathname-directory-pathname (asdf/component:component-parent-pathname file))))
 
 (defmethod initialize-instance :after ((file multi-type-source-file) &key)
-  (let ((lastdot (position #\. (asdf:component-name file) :from-end T)))
-    (when lastdot
-      (let ((extension (find (subseq (asdf:component-name file) (1+ lastdot))
-                             (file-types file) :test #'string=)))
-        (when extension
-          (setf (asdf:file-type file) extension)
-          (setf (asdf:component-name file) (subseq (asdf:component-name file) 0 lastdot)))))))
+  (initialize-multi-type-source-file file))
 
-(define-asdf/interface-class c-file (asdf:source-file option-component)
-  ((type :initform "c")))
+(defmethod reinitialize-instance :after ((file multi-type-source-file) &key)
+  (initialize-multi-type-source-file file))
+
+(define-asdf/interface-class c-file (multi-type-source-file option-component)
+  ((type :initform "c"))
+  (:default-initargs :types '("c")))
 
 (defmethod print-object ((file c-file) stream)
   (print-unreadable-object (file stream :type T)
@@ -49,23 +67,23 @@
 (defmethod asdf:action-description ((op preprocess-op) (file c-file))
   (format nil "~@<calling the preprocessor on ~3i~_~A~@:>" file))
 
-(defmethod asdf:action-description ((op assemble-op) (file c-file))
-  (format nil "~@<calling the assembler on ~3i~_~A~@:>" file))
-
 (defmethod asdf:input-files ((op preprocess-op) (file c-file))
   (list (asdf:component-pathname file)))
+
+(defmethod asdf:output-files ((op preprocess-op) (file c-file))
+  (list (make-pathname :name (file-name file) :type "i")))
+
+(defmethod asdf:action-description ((op assemble-op) (file c-file))
+  (format nil "~@<calling the assembler on ~3i~_~A~@:>" file))
 
 (defmethod asdf:input-files ((op assemble-op) (file c-file))
   (asdf:output-files 'preprocess-op file))
 
+(defmethod asdf:output-files ((op assemble-op) (file c-file))
+  (list (make-pathname :name (file-name file) :type "o")))
+
 (defmethod asdf:input-files ((op link-op) (file c-file))
   (asdf:output-files 'assemble-op file))
-
-(defmethod asdf:output-files ((op preprocess-op) (file c-file))
-  (list (make-pathname :name (asdf:component-name file) :type "i")))
-
-(defmethod asdf:output-files ((op assemble-op) (file c-file))
-  (list (make-pathname :name (asdf:component-name file) :type "o")))
 
 (defmethod asdf:perform ((op preprocess-op) (file c-file))
   (execute op (asdf:input-files op file) (asdf:output-files op file)))
@@ -76,10 +94,11 @@
 (defmethod asdf:perform ((op asdf:compile-op) (file c-file))
   (asdf:perform 'assemble-op file))
 
-(define-asdf/interface-class c-header (asdf:source-file)
-  ((type :initform "h")))
+(define-asdf/interface-class c-header (multi-type-source-file option-component)
+  ((type :initform "h"))
+  (:default-initargs :types '("h")))
 
-(define-asdf/interface-class c++-file (c-file multi-type-source-file)
+(define-asdf/interface-class c++-file (c-file)
   ((type :initform "cpp"))
   (:default-initargs :types '("c" "cpp" "cxx" "c++" "C" "cc")))
 
