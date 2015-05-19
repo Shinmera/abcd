@@ -57,6 +57,7 @@
 (defmacro define-dependency-resolver (name (system &rest args) &body body)
   `(setf (dependency-resolver ',name)
          (lambda (,system ,@args)
+           (declare (ignorable ,system))
            ,@body)))
 
 ;; We'd like to specialise on c-system here, but in the load order the class isn't defined
