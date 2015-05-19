@@ -22,14 +22,15 @@
   `(:options ,(operation-direct-options op)
     :compiler ,(operation-compiler op)))
 
-(defmethod execute ((op c-compiler-op) inputs outputs)
-  (loop for input in inputs
-        for output in outputs
-        do (apply (operation-compiler-function op)
-                  (or (operation-compiler op) T)
-                  (minimal-shell-namestring input)
-                  (minimal-shell-namestring output)
-                  (operation-effective-options op))))
+(defgeneric execute (op inputs outputs)
+  (:method ((op c-compiler-op) inputs outputs)
+    (loop for input in inputs
+          for output in outputs
+          do (apply (operation-compiler-function op)
+                    (or (operation-compiler op) T)
+                    (minimal-shell-namestring input)
+                    (minimal-shell-namestring output)
+                    (operation-effective-options op)))))
 
 (define-asdf/interface-class compute-options-op (asdf:upward-operation)
   ())
@@ -76,8 +77,29 @@
     (apply (operation-compiler-function op)
            (or (operation-compiler op) T)
            (mapcar #'minimal-shell-namestring inputs)
-           (minimal-shell-namestring output)
+           (minimal-shell-namestring (sharedobject-file output))
            (operation-effective-options op))))
+
+(define-asdf/interface-class archive-op (asdf:selfward-operation asdf:downward-operation)
+  ((asdf:selfward-operation :initform 'compute-options-op :allocation :class)
+   (asdf:downward-operation :initform 'assemble-op :allocation :class)))
+
+(defmethod asdf:perform ((op archive-op) component)
+  NIL)
+
+(defmethod execute ((op archive-op) inputs outputs)
+  (let ((output (first outputs)))
+    (unless outputs
+      (error "No output file specified."))
+    (unless inputs
+      (error "No input files to link specified."))
+    (when (cdr outputs)
+      (warn "Don't know how to use multiple outputs with ~a" op))
+    (invoke 'archive
+            (shellify
+             ("-cq" T)
+             ("~a" (archive-file output))
+             ("~{~a~^ ~}" inputs)))))
 
 (defmethod asdf:action-description ((op compute-options-op) (c asdf:component))
   (format nil "~@<computing options for ~3i~_~A~@:>" c))
@@ -91,6 +113,12 @@
 (defmethod asdf:action-description ((op link-op) (c asdf:component))
   (format nil "~@<linking ~3i~_~A~@:>" c))
 
+(defmethod asdf:action-description ((op archive-op) (c asdf:component))
+  (format nil "~@<archiving ~3i~_~A~@:>" c))
+
 #+:verbose
-(defmethod asdf:perform :before ((op c-compiler-op) component)
-  (v:trace :abcd.build "~@(~a~)" (asdf:action-description op component)))
+(macrolet ((note-operation (op)
+             `(defmethod asdf:perform :before ((op ,op) component)
+                (v:trace :abcd.build "~@(~a~)" (asdf:action-description op component)))))
+  (note-operation c-compiler-op)
+  (note-operation archive-op))
