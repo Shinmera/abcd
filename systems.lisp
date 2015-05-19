@@ -83,6 +83,11 @@
 (define-operate-delegator asdf:load-op link-op)
 (define-operate-delegator asdf:program-op link-op)
 
+(defmethod asdf:perform ((op compute-options-op) (system c-system))
+  (setf (component-effective-options system)
+        (merge-options (component-effective-options system)
+                       (component-direct-options system))))
+
 ;; This method is run after the usual around for option-components. We
 ;; don't need to save the options, only overwrite them with the correct
 ;; merging order for systems. Operation options should override system

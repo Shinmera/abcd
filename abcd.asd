@@ -21,5 +21,6 @@
                (:file "operations")
                (:file "components")
                (:file "conditionals")
-               (:file "systems"))
+               (:file "systems")
+               (:file "dependencies"))
   :depends-on (:trivial-features))
