@@ -16,6 +16,7 @@
   :components ((:file "package")
                (:file "toolkit")
                (:file "defsystem")
+               (:file "applications")
                (:file "compilers")
                (:file "operations")
                (:file "components")

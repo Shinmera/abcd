@@ -6,11 +6,11 @@
 
 (in-package #:org.shirakumo.abcd)
 
-(defvar *default-compiler* (make-instance 'c-compiler))
-
-(defclass c-compiler ()
-  ((executable :initarg :executable :reader executable))
+(defclass c-compiler (application)
+  ()
   (:default-initargs :executable "cc"))
+
+(defvar *default-compiler* (make-instance 'c-compiler))
 
 (defun ensure-compiler (thing)
   (etypecase thing
@@ -23,19 +23,12 @@
             (uiop:coerce-class (first thing) :package :org.shirakumo.abcd :super 'c-compiler)
             (rest thing)))))
 
-(defgeneric invoke (c-compiler args &key output error-output &allow-other-keys)
-  (:method (c-compiler args &rest kargs &key (output T) (error-output T))
-    (let ((command (with-clear-environment
-                       (etypecase args
-                         (list (list* (executable c-compiler) (mapcar #'externalize args)))
-                         (string (format NIL "~a ~a" (executable c-compiler) args))))))
-      #+:verbose (v:trace :abcd.compiler "Invoking ~a" command)
-      (apply #'uiop:run-program command :output output :error-output error-output kargs))))
-
 (defmacro  define-compiler-method (name (compiler) &body flags)
   (let ((flagargs (remove-duplicates
                    (loop for flag in flags
-                         for arg = (loop for arg in flag when (and (symbolp arg) (not (eql arg T))) return arg)
+                         for arg = (loop for arg in flag
+                                         when (and (symbolp arg) (not (eql arg T)))
+                                         return arg)
                          when arg collect arg)))
         (c-compiler (gensym "C-COMPILER"))
         (from (gensym "FROM"))
