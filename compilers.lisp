@@ -66,7 +66,8 @@
 (define-standard-compiler-method c-assemble (c-compiler)
   ("-c~*" T)
   ("-Wa~{,~a~}" assembler)
-  ("~{-I~a~^ ~}" include-dirs))
+  ("~{-I~a~^ ~}" include-dirs)
+  ("~{~a~^ ~}" assemble-files))
 
 (defgeneric c-link (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
@@ -76,7 +77,8 @@
   ("-shared~*" shared)
   ("-Wl~{,~a~}" linker)
   ("~{-L~a~^ ~}" library-dirs)
-  ("~{-l~a~^ ~}" libraries))
+  ("~{-l~a~^ ~}" libraries)
+  ("~{~a~^ ~}" link-files))
 
 (defgeneric c-compile (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
