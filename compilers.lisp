@@ -36,19 +36,19 @@
     `(defmethod ,name ((,c-compiler ,compiler) ,from ,to &key ,@flagargs)
        (invoke ,c-compiler
                (shellify
-                 ,@flags
                  ("-o ~a" ,to)
+                 ,@flags
                  ("~{~a~^ ~}" (ensure-list ,from)))))))
 
 (defmacro define-standard-compiler-method (name (compiler) &body extra-flags)
   `(define-compiler-method ,name (,compiler)
-     ,@extra-flags
      ("-W~(~a~)" warnings)
      ("-O~(~a~)" optimize)
      ("-g~*" debug)
      ("-x~a" language)
      ("-std=~a" standard)
-     ("~{-f~(~a~)~^ ~}" flags)))
+     ("~{-f~(~a~)~^ ~}" flags)
+     ,@extra-flags))
 
 (defgeneric c-preprocess (c-compiler from to &key &allow-other-keys)
   (:method (compiler from to &rest args)
