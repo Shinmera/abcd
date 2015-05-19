@@ -10,8 +10,20 @@
   ((operation :initarg :op :accessor delegate-op-component-operation)
    (system :initarg :system :accessor delegate-op-component-system))
   (:default-initargs
+   :name "DELEGATE"
    :op (error "OP required.")
    :system (error "SYSTEM required.")))
+
+(defmethod print-object ((component delegate-op-component) stream)
+  (print-unreadable-object (component stream :type T)
+    (format stream ":operation ~s :system ~s"
+            (delegate-op-component-operation component)
+            (delegate-op-component-system component))))
+
+(defmethod asdf:needed-in-image-p (op (component delegate-op-component))
+  (asdf:needed-in-image-p
+   (delegate-op-component-operation component)
+   (delegate-op-component-system component)))
 
 (defmethod asdf:operate (op (component delegate-op-component) &rest args)
   (apply #'asdf:operate
@@ -21,8 +33,9 @@
 
 (defgeneric c-system-includable-pathnames (system)
   (:method ((system c-system))
-    (let ((includes system))
+    (let ((includes ()))
       (dolist (header (find-components 'c-header system :test #'typep))
+        (asdf:operate 'compute-options-op header)
         (when (getf (component-effective-options header) :includable)
           (pushnew (uiop:pathname-directory-pathname
                     (asdf:component-pathname header))
@@ -36,28 +49,24 @@
     `(:include-dirs ,(c-system-includable-pathnames system)
       :library-dirs (,(uiop:pathname-directory-pathname
                        (asdf/system:component-build-pathname system)))
-      :libraries (,(asdf/system:component-build-pathname system)))))
+      :libraries (,(pathname-name (asdf/system:component-build-pathname system))))))
 
 (define-dependency-def-parser :shared-library (definition)
   definition)
 
-(define-dependency-resolver :shared-library (system dependant &rest op-args &key)
+(define-dependency-resolver :shared-library (system dependant &key)
   (let ((dependant (asdf:find-system dependant T)))
-    (setf (component-effective-options system)
-          (merge-options (component-effective-options system)
+    (setf (component-direct-options system)
+          (merge-options (component-direct-options system)
                          (c-system-library-options dependant)))
-    (make-instance 'delegate-op-component
-                   :system dependant
-                   :op (apply #'make-instance 'link-op op-args))))
+    dependant))
 
 (define-dependency-def-parser :static-library (definition)
   definition)
 
-(define-dependency-resolver :static-library (system dependant &rest op-args &key)
+(define-dependency-resolver :static-library (system dependant &key)
   (let ((dependant (asdf:find-system dependant T)))
-    (setf (component-effective-options system)
-          (merge-options (component-effective-options system)
+    (setf (component-direct-options system)
+          (merge-options (component-direct-options system)
                          (c-system-library-options dependant)))
-    (make-instance 'delegate-op-component
-                   :system dependant
-                   :op (apply #'make-instance 'archive-op op-args))))
+    dependant))
