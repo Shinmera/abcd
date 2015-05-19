@@ -77,7 +77,10 @@
     (apply (operation-compiler-function op)
            (or (operation-compiler op) T)
            (mapcar #'minimal-shell-namestring inputs)
-           (minimal-shell-namestring (sharedobject-file output))
+           (minimal-shell-namestring
+            (if (getf (operation-effective-options op) :shared)
+                (sharedobject-file output)
+                output))
            (operation-effective-options op))))
 
 (define-asdf/interface-class archive-op (asdf:selfward-operation asdf:downward-operation)
