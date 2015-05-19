@@ -5,6 +5,8 @@
 |#
 
 (in-package #:org.shirakumo.abcd)
+#+:verbose (require :verbose)
+#+:verbose (setf (v:repl-level) :trace)
 
 (defun ensure-list (thing)
   (if (listp thing)
@@ -66,13 +68,17 @@
   (make-pathname :type "o" :defaults pathname))
 
 (defun archive-file (pathname)
-  (make-pathname :type "a"
-                 :defaults pathname))
+  (make-pathname
+   :name (format NIL "lib~a" (pathname-name pathname))
+   :type "a"
+   :defaults pathname))
 
 (defun sharedobject-file (pathname)
-  (make-pathname :type #+unix "so"
-                       #+windows "dll"
-                 :defaults pathname))
+  (make-pathname
+   :name (format NIL "lib~a" (pathname-name pathname))
+   :type #+unix "so"
+         #+windows "dll"
+   :defaults pathname))
 
 (defvar *nothing* (make-symbol "NOTHING"))
 (defun merge-options (options &optional defaults)
@@ -153,6 +159,7 @@
     (cons (list* "env" "-i" command))
     (string (format NIL "env -i ~a" command)))
   #-unix
+  command
   command)
 
 (defun find-components (item component &key (key #'identity) (test #'eql))
