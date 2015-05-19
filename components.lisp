@@ -10,13 +10,20 @@
   ((direct-options :initform () :initarg :options :accessor component-direct-options)
    (effective-options :initform () :accessor component-effective-options)))
 
+(defun find-options-parent (component)
+  (loop for parent = (asdf:component-parent component)
+        then (asdf:component-parent parent)
+        while (typep parent 'asdf:child-component)
+        when (typep parent 'option-component)
+        do (return parent)))
+
 (defmethod asdf:perform ((op compute-options-op) (component option-component))
-  (setf (component-effective-options component)
-        (if (and (typep component 'asdf:child-component)
-                 (typep (asdf:component-parent component) 'option-component))
-            (merge-options (component-direct-options component)
-                         (component-effective-options (asdf:component-parent component)))
-            (component-direct-options component))))
+  (let ((parent (find-options-parent component)))
+    (setf (component-effective-options component)
+          (if parent
+              (merge-options (component-direct-options component)
+                             (component-effective-options parent))
+              (component-direct-options component)))))
 
 (defmethod asdf:perform :around ((op c-compiler-op) (component option-component))
   (let ((current-options (operation-effective-options op)))
