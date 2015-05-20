@@ -56,9 +56,8 @@
 
 (define-dependency-resolver :shared-library (system dependant &key)
   (let ((dependant (asdf:find-system dependant T)))
-    (setf (component-direct-options system)
-          (merge-options (component-direct-options system)
-                         (c-system-library-options dependant)))
+    (nmerge-options (component-direct-options system)
+                    (c-system-library-options dependant))
     dependant))
 
 (define-dependency-def-parser :static-library (definition)
@@ -66,7 +65,6 @@
 
 (define-dependency-resolver :static-library (system dependant &key)
   (let ((dependant (asdf:find-system dependant T)))
-    (setf (component-direct-options system)
-          (merge-options (component-direct-options system)
-                         (c-system-library-options dependant)))
+    (nmerge-options (component-direct-options system)
+                    (c-system-library-options dependant))
     dependant))
