@@ -13,15 +13,23 @@
       thing
       (list thing)))
 
-(defun externalize (thing)
-  (typecase thing
-    (pathname (uiop:native-namestring thing))
-    (string thing)
-    (T (princ-to-string thing))))
-
 (defmacro shellify (&body options)
-  `(format NIL ,(format NIL "~{~~@[~a ~~]~}" (mapcar #'first options))
-           ,@(apply #'append (mapcar #'rest options))))
+  (flet ((prep (arg)
+           (cl-ppcre:regex-replace-all "~!" (first arg) "~/abcd::shell-arg/")))
+    `(format NIL ,(format NIL "~{~~@[~a ~~]~}" (mapcar #'prep options))
+             ,@(apply #'append (mapcar #'rest options)))))
+
+(defun shell-arg (stream arg &rest rest)
+  (declare (ignore rest))
+  (typecase arg
+    (symbol (loop for char across (string arg) do (write-char (char-downcase char) stream)))
+    (string (write-string arg stream))
+    (pathname (write-string (uiop:native-namestring (uiop:enough-pathname arg (uiop:getcwd))) stream))
+    (T (princ arg stream))))
+
+(defun externalize (thing)
+  (with-output-to-string (stream)
+    (shell-arg stream thing)))
 
 (defmacro with-cleaned-files ((files form) &body body)
   `(let ((,files ,form))

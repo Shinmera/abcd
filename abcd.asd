@@ -23,4 +23,5 @@
                (:file "conditionals")
                (:file "systems")
                (:file "dependencies"))
-  :depends-on (:trivial-features))
+  :depends-on (:trivial-features
+               :cl-ppcre))
