@@ -57,9 +57,10 @@
 (defmethod asdf:perform ((op assemble-op) component)
   NIL)
 
-(define-asdf/interface-class link-op (c-compiler-op asdf:selfward-operation asdf:downward-operation)
+(define-asdf/interface-class link-op (c-compiler-op asdf:selfward-operation asdf:sideway-operation asdf:downward-operation)
   ((asdf:selfward-operation :initform 'compute-options-op :allocation :class)
-   (asdf:downward-operation :initform 'assemble-op :allocation :class))
+   (asdf:downward-operation :initform 'assemble-op :allocation :class)
+   (asdf:sideway-operation :initform 'asdf:compile-op :allocation :class))
   (:default-initargs
    :compiler-function #'c-link))
 
@@ -83,9 +84,10 @@
                 output))
            (operation-effective-options op))))
 
-(define-asdf/interface-class archive-op (asdf:selfward-operation asdf:downward-operation)
+(define-asdf/interface-class archive-op (asdf:selfward-operation asdf:sideway-operation asdf:downward-operation)
   ((asdf:selfward-operation :initform 'compute-options-op :allocation :class)
-   (asdf:downward-operation :initform 'assemble-op :allocation :class)))
+   (asdf:downward-operation :initform 'assemble-op :allocation :class)
+   (asdf:sideway-operation :initform 'asdf:compile-op :allocation :class)))
 
 (defmethod asdf:perform ((op archive-op) component)
   NIL)
@@ -98,11 +100,11 @@
       (error "No input files to link specified."))
     (when (cdr outputs)
       (warn "Don't know how to use multiple outputs with ~a" op))
-    (invoke 'archive
+    (invoke 'archiver
             (shellify
-             ("-cq" T)
-             ("~a" (archive-file output))
-             ("~{~a~^ ~}" inputs)))))
+             ("-cq~*" T)
+             ("~!" (archive-file output))
+             ("~{~!~^ ~}" inputs)))))
 
 (defmethod asdf:action-description ((op compute-options-op) (c asdf:component))
   (format nil "~@<computing options for ~3i~_~A~@:>" c))
