@@ -56,32 +56,30 @@
        *default-header-class*)
    :package :asdf/interface :super 'asdf:component :error nil))
 
-(defmacro define-downard-appending (name op component)
+(defmacro define-downward-appending (name op component)
   `(defmethod ,name ((op ,op) (component ,component))
      (loop for child in (asdf:component-children component)
            append (,name op child))))
 
-(define-downard-appending asdf:input-files preprocess-op asdf:parent-component)
-(define-downard-appending asdf:input-files assemble-op asdf:parent-component)
-(define-downard-appending asdf:input-files link-op asdf:parent-component)
-(define-downard-appending asdf:output-files preprocess-op asdf:parent-component)
-(define-downard-appending asdf:output-files assemble-op asdf:parent-component)
+(define-downward-appending asdf:input-files preprocess-op asdf:parent-component)
+(define-downward-appending asdf:input-files assemble-op asdf:parent-component)
+(define-downward-appending asdf:input-files link-op asdf:parent-component)
+(define-downward-appending asdf:output-files preprocess-op asdf:parent-component)
+(define-downward-appending asdf:output-files assemble-op asdf:parent-component)
 
 (defmethod asdf:output-files ((op link-op) (system c-system))
-  (values (list (asdf/system:component-build-pathname system)) T))
+  (values (list (if (or (getf (component-direct-options system) :shared)
+                        (getf (component-effective-options system) :shared))
+                    (sharedobject-file (asdf/system:component-build-pathname system))
+                    (asdf/system:component-build-pathname system))) T))
+
+(defmethod asdf:output-files ((op archive-op) (system c-system))
+  (values (list (archive-file (asdf/system:component-build-pathname system))) T))
 
 (defmethod asdf:perform ((op link-op) (system c-system))
   (execute op
            (asdf:output-files 'assemble-op system)
            (list (asdf/system:component-build-pathname system))))
-
-(defmacro define-operate-delegator (from-op to-op)
-  `(defmethod asdf:operate ((op ,from-op) (system c-system) &rest args)
-     (apply #'call-next-method ',to-op system args)))
-
-(define-operate-delegator asdf:compile-op link-op)
-(define-operate-delegator asdf:load-op link-op)
-(define-operate-delegator asdf:program-op link-op)
 
 (defmethod asdf:perform ((op compute-options-op) (system c-system))
   (setf (component-effective-options system)
@@ -119,3 +117,17 @@
 (define-operation-wrapper preprocess-system preprocess-op)
 (define-operation-wrapper assemble-system assemble-op)
 (define-operation-wrapper link-system link-op)
+
+(defmacro define-operate-delegator (from-op to-op)
+  `(defmethod asdf:operate ((op ,from-op) (system c-system) &rest args)
+     (apply #'call-next-method ',to-op system args)))
+
+(define-operate-delegator asdf:compile-op program-op)
+(define-operate-delegator asdf:load-op program-op)
+
+(defmethod asdf:operate ((op asdf:program-op) (system c-system) &rest args)
+  (when (or (c-system-shared-library system)
+            (not (c-system-static-library system)))
+    (apply #'call-next-method 'link-op system args))
+  (when (c-system-static-library system)
+    (apply #'call-next-method 'archive-op system args)))
