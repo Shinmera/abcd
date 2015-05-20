@@ -101,9 +101,18 @@
 (defmethod asdf:perform ((op asdf:compile-op) (file c-file))
   (asdf:perform 'assemble-op file))
 
+(defmethod asdf:perform ((op asdf:load-op) (file c-file))
+  NIL)
+
 (define-asdf/interface-class c-header (multi-type-source-file option-component)
   ((type :initform "h"))
   (:default-initargs :types '("h")))
+
+(defmethod asdf:perform ((op asdf:compile-op) (file c-header))
+  NIL)
+
+(defmethod asdf:perform ((op asdf:load-op) (file c-header))
+  NIL)
 
 (define-asdf/interface-class c++-file (c-file)
   ((type :initform "cpp"))
