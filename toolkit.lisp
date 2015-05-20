@@ -30,6 +30,15 @@
   (with-output-to-string (stream)
     (shell-arg stream thing)))
 
+(defmacro with-preserved-cwd ((new-path) &body body)
+  (let ((old (gensym "OLD")))
+    `(let ((,old (uiop:getcwd)))
+       (unwind-protect
+            (progn
+              (uiop:chdir ,new-path)
+              ,@body)
+         (uiop:chdir ,old)))))
+
 (defmacro with-cleaned-files ((files form) &body body)
   `(let ((,files ,form))
      (unwind-protect
