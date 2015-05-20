@@ -81,6 +81,11 @@
            (asdf:output-files 'assemble-op system)
            (list (asdf/system:component-build-pathname system))))
 
+(defmethod asdf:perform ((op archive-op) (system c-system))
+  (execute op
+           (asdf:output-files 'assemble-op system)
+           (list (asdf/system:component-build-pathname system))))
+
 (defmethod asdf:perform ((op compute-options-op) (system c-system))
   (setf (component-effective-options system)
         (merge-options (component-effective-options system)
@@ -95,14 +100,15 @@
         (merge-options (operation-direct-options op) (component-effective-options system))))
 
 (defmethod asdf:operate :around ((op c-compiler-op) (system c-system) &key)
-  (let ((origdir (uiop:getcwd)))
+  (with-preserved-cwd ((component-output-pathname system))
     (unless (operation-compiler op)
       (setf (operation-compiler op)
             (ensure-compiler (c-system-compiler system))))
-    (uiop:chdir (component-output-pathname system))
-    (unwind-protect
-         (call-next-method)
-      (uiop:chdir origdir))))
+    (call-next-method)))
+
+(defmethod asdf:operate :around ((op archive-op) (system c-system) &key)
+  (with-preserved-cwd ((component-output-pathname system))
+    (call-next-method)))
 
 (defmacro define-operation-wrapper (name operation-class)
   `(define-asdf/interface-function ,name (system &rest args &key options compiler force force-not verbose version &allow-other-keys)
@@ -117,15 +123,15 @@
 (define-operation-wrapper preprocess-system preprocess-op)
 (define-operation-wrapper assemble-system assemble-op)
 (define-operation-wrapper link-system link-op)
+(define-operation-wrapper archive-system archive-op)
 
 (defmacro define-operate-delegator (from-op to-op)
   `(defmethod asdf:operate ((op ,from-op) (system c-system) &rest args)
      (apply #'call-next-method ',to-op system args)))
 
-(define-operate-delegator asdf:compile-op program-op)
-(define-operate-delegator asdf:load-op program-op)
+(define-operate-delegator asdf:load-op compile-op)
 
-(defmethod asdf:operate ((op asdf:program-op) (system c-system) &rest args)
+(defmethod asdf:operate ((op asdf:compile-op) (system c-system) &rest args)
   (when (or (c-system-shared-library system)
             (not (c-system-static-library system)))
     (apply #'call-next-method 'link-op system args))
