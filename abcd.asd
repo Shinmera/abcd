@@ -24,4 +24,5 @@
                (:file "systems")
                (:file "dependencies"))
   :depends-on (:trivial-features
-               :cl-ppcre))
+               :cl-ppcre
+               :verbose))

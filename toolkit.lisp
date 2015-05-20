@@ -5,7 +5,6 @@
 |#
 
 (in-package #:org.shirakumo.abcd)
-#+:verbose (require :verbose)
 #+:verbose (setf (v:repl-level) :trace)
 
 (defun ensure-list (thing)
