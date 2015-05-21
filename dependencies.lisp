@@ -6,31 +6,6 @@
 
 (in-package #:org.shirakumo.abcd)
 
-(defclass delegate-op-component (asdf:component)
-  ((operation :initarg :op :accessor delegate-op-component-operation)
-   (system :initarg :system :accessor delegate-op-component-system))
-  (:default-initargs
-   :name "DELEGATE"
-   :op (error "OP required.")
-   :system (error "SYSTEM required.")))
-
-(defmethod print-object ((component delegate-op-component) stream)
-  (print-unreadable-object (component stream :type T)
-    (format stream ":operation ~s :system ~s"
-            (delegate-op-component-operation component)
-            (delegate-op-component-system component))))
-
-(defmethod asdf:needed-in-image-p (op (component delegate-op-component))
-  (asdf:needed-in-image-p
-   (delegate-op-component-operation component)
-   (delegate-op-component-system component)))
-
-(defmethod asdf:operate (op (component delegate-op-component) &rest args)
-  (apply #'asdf:operate
-         (delegate-op-component-operation component)
-         (delegate-op-component-system component)
-         args))
-
 (defgeneric c-system-includable-pathnames (system)
   (:method ((system c-system))
     (let ((includes ()))
