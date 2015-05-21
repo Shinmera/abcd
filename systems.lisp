@@ -125,11 +125,8 @@
 (define-operation-wrapper link-system link-op)
 (define-operation-wrapper archive-system archive-op)
 
-(defmacro define-operate-delegator (from-op to-op)
-  `(defmethod asdf:operate ((op ,from-op) (system c-system) &rest args)
-     (apply #'call-next-method ',to-op system args)))
-
-(define-operate-delegator asdf:load-op compile-op)
+(defmethod asdf:operate ((op asdf:load-op) (system c-system) &rest args)
+  (apply #'call-next-method 'asdf:compile-op system args))
 
 ;; Spoof COMPILE-OP planning to create a plan for LINK-OP and ARCHIVE-OP as needed.
 (defmethod asdf/plan:traverse-action :around ((plan asdf/plan:plan) (op asdf:compile-op) (system c-system) needed-in-image-p)
