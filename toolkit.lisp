@@ -31,11 +31,14 @@
     (shell-arg stream thing)))
 
 (defmacro with-preserved-cwd ((new-path) &body body)
-  (let ((old (gensym "OLD")))
-    `(let ((,old (uiop:getcwd)))
+  (let ((old (gensym "OLD"))
+        (new (gensym "NEW")))
+    `(let ((,old (uiop:getcwd))
+           (,new ,new-path))
        (unwind-protect
             (progn
-              (uiop:chdir ,new-path)
+              (ensure-directories-exist ,new)
+              (uiop:chdir ,new)
               ,@body)
          (uiop:chdir ,old)))))
 
@@ -130,6 +133,7 @@
     (flet ((push-component (c)
              (push
               (etypecase c
+                (multi-type-source-file (format NIL "~a" (asdf:component-name c)))
                 (asdf:source-file (format NIL "~a.~a" (asdf:component-name c) (asdf:file-type c)))
                 (asdf:component (asdf:component-name c)))
               comps)))
