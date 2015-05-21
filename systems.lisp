@@ -28,7 +28,7 @@
           (make-pathname :name (asdf:component-name system))))
   ;; Adapt flags for dynamic libs
   (when (c-system-shared-library system)
-    (nmerge-options (component-direct-options system) `(:flags (:pic)
+    (nmerge-options (component-direct-options system) `(:flags ("PIC")
                                                         :shared T)))
   ;; Make absolute to source directory if possible
   (setf (asdf/system:component-build-pathname system)
@@ -131,9 +131,11 @@
 
 (define-operate-delegator asdf:load-op compile-op)
 
-(defmethod asdf:operate ((op asdf:compile-op) (system c-system) &rest args)
+;; Spoof COMPILE-OP planning to create a plan for LINK-OP and ARCHIVE-OP as needed.
+(defmethod asdf/plan:traverse-action :around ((plan asdf/plan:plan) (op asdf:compile-op) (system c-system) needed-in-image-p)
   (when (or (c-system-shared-library system)
             (not (c-system-static-library system)))
-    (apply #'call-next-method 'link-op system args))
+    (funcall #'call-next-method plan (asdf:make-operation 'link-op) system needed-in-image-p))
   (when (c-system-static-library system)
-    (apply #'call-next-method 'archive-op system args)))
+    (funcall #'call-next-method plan (asdf:make-operation 'archive-op) system needed-in-image-p))
+  plan)
