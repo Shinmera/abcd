@@ -124,6 +124,6 @@
 #+:verbose
 (macrolet ((note-operation (op)
              `(defmethod asdf:perform :before ((op ,op) component)
-                (v:trace :abcd.build "~@(~a~)" (asdf:action-description op component)))))
+                (v:debug :abcd.build "~@(~a~)" (asdf:action-description op component)))))
   (note-operation c-compiler-op)
   (note-operation archive-op))
