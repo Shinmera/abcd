@@ -182,15 +182,22 @@
   command
   command)
 
+(defun map-components (function component)
+  (labels ((traverse (component)
+             (when (typep component 'asdf:parent-component)
+               (dolist (child (asdf:component-children component))
+                 (funcall function child)
+                 (traverse child)))))
+    (traverse component)))
+
+(defmacro do-components ((child component) &body body)
+  `(map-components (lambda (,child) ,@body) ,component))
+
 (defun find-components (item component &key (key #'identity) (test #'eql))
   (let ((found ()))
-    (labels ((traverse (component)
-               (when (typep component 'asdf:parent-component)
-                 (dolist (child (asdf:component-children component))
-                   (when (funcall test (funcall key child) item)
-                     (push child found))
-                   (traverse child)))))
-      (traverse component))
+    (do-components (child component)
+      (when (funcall test (funcall key child) item)
+        (push child found)))
     found))
 
 (defmacro define-function-map-wrappers (base-name &optional (map-test ''equal))
