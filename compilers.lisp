@@ -56,6 +56,7 @@
 
 (define-standard-compiler-method c-preprocess (c-compiler)
   ("-E~*" T)
+  ("~{-D~!~^ ~}" macros)
   ("-Wp~{,~!~}" preprocessor)
   ("~{-I~!~^ ~}" include-dirs))
 
